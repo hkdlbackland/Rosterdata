@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>交更系統 — 經理後台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f2f2f7;color:#1c1c1e;min-height:100vh;padding-bottom:75px}
+
+.header{background:linear-gradient(135deg,#5e35b1,#7c4dff);color:#fff;padding:18px 16px 14px;text-align:center;position:sticky;top:0;z-index:100;position:relative}
+.header h1{font-size:18px;font-weight:700}
+.header .sub{font-size:12px;opacity:.85;margin-top:3px}
+.refresh-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;color:#fff;font-size:18px;padding:6px 10px;border-radius:8px;cursor:pointer}
+
+.container{max-width:600px;margin:0 auto;padding:14px}
+
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card h3{font-size:15px;font-weight:700;margin-bottom:12px}
+
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.kpi-card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.08);text-align:center}
+.kpi-card .kpi-value{font-size:26px;font-weight:800;color:#5e35b1}
+.kpi-card .kpi-label{font-size:12px;color:#888;margin-top:4px}
+
+.section-title{font-size:15px;font-weight:700;margin:16px 0 10px;color:#333}
+
+.list-item{background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.06);display:flex;justify-content:space-between;align-items:center}
+.li-main{flex:1;min-width:0}
+.li-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li-sub{font-size:12px;color:#888;margin-top:3px}
+.li-right{text-align:right;flex-shrink:0;margin-left:10px}
+
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-old{background:#fff3e0;color:#e65100}
+.badge-new{background:#e8f5e9;color:#2e7d32}
+.badge-red{background:#ffeaea;color:#d32f2f}
+.badge-green{background:#e8f5e9;color:#2e7d32}
+
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.tag{background:#f0ebff;color:#5e35b1;padding:4px 8px;border-radius:6px;font-size:12px;font-weight:600}
+
+.tab-filter{display:flex;gap:8px;margin-bottom:12px}
+.tab-filter button{padding:7px 14px;border:none;border-radius:8px;font-size:13px;font-weight:600;background:#e8e8e8;color:#666;cursor:pointer}
+.tab-filter button.active{background:#5e35b1;color:#fff}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e0e0;display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;text-align:center;padding:8px 0 6px;cursor:pointer}
+.nav-item .nav-icon{font-size:20px}
+.nav-item .nav-label{font-size:10px;margin-top:2px;color:#999}
+.nav-item.active .nav-label{color:#5e35b1;font-weight:700}
+
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+.expandable{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.expandable.open{max-height:600px}
+.expand-content{padding:12px 0 4px;border-top:1px solid #f0f0f0;margin-top:10px}
+
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:#666;margin-bottom:5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;background:#fafafa;-webkit-appearance:none;appearance:none}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#7c4dff;outline:none;background:#fff}
+.form-group textarea{resize:none;height:80px;font-family:inherit}
+
+.btn{padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;width:100%}
+.btn-primary{background:linear-gradient(135deg,#5e35b1,#7c4dff);color:#fff}
+.btn-primary:active{opacity:.9;transform:scale(.98)}
+.btn-sm{width:auto;padding:6px 14px;font-size:13px;border-radius:8px}
+.btn-outline{background:none;border:1.5px solid #7c4dff;color:#7c4dff}
+.btn-grey{background:#e8e8e8;color:#666}
+
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-content{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:85vh;overflow-y:auto;padding:20px 16px 30px}
+.modal-content h3{font-size:17px;font-weight:700;margin-bottom:14px}
+
+.pin-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#f2f2f7;z-index:300;display:flex;align-items:center;justify-content:center}
+.pin-box{text-align:center;padding:20px}
+.pin-box h2{font-size:48px;margin-bottom:8px}
+.pin-box p{font-size:14px;color:#888;margin-bottom:20px}
+.pin-box input{width:200px;text-align:center;font-size:28px;letter-spacing:12px;padding:12px;border:2px solid #e0e0e0;border-radius:12px;background:#fff}
+.pin-box input:focus{border-color:#7c4dff;outline:none}
+.pin-box .pin-err{color:#ff3b30;font-size:13px;margin-top:10px;min-height:20px}
+
+.remarks-text{font-size:13px;color:#666;margin-top:6px;background:#f9f9f9;padding:8px 10px;border-radius:8px}
+.empty-state{text-align:center;padding:30px 20px;color:#aaa}
+.empty-state .emoji{font-size:40px;margin-bottom:8px}
+.empty-state p{font-size:14px}
+
+.loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;z-index:999}
+.spinner{width:36px;height:36px;border:3px solid #e0e0e0;border-top-color:#7c4dff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);background:#1c1c1e;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:1000;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading-overlay hide"><div class="spinner"></div></div>
+<div id="toast" class="toast"></div>
+
+<!-- ============ PIN LOGIN ============ -->
+<div id="pinOverlay" class="pin-overlay">
+  <div class="pin-box">
+    <h2>🔐</h2>
+    <p>請輸入經理密碼</p>
+    <input type="password" id="pinInput" maxlength="4" inputmode="numeric" placeholder="••••" autofocus>
+    <div class="pin-err" id="pinErr"></div>
+  </div>
+</div>
+
+<!-- ============ HEADER ============ -->
+<div class="header">
+  <h1>📋 經理後台</h1>
+  <div class="sub" id="headerPeriod">載入中…</div>
+  <button class="refresh-btn" onclick="loadAllData()" title="重新整理">🔄</button>
+</div>
+
+<!-- ============ TAB CONTENTS ============ -->
+<div class="container">
+
+  <!-- Tab 1: 總覽 -->
+  <div id="tabOverview" class="tab-content active">
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <div class="section-title">⚠️ 未交更同事</div>
+    <div id="notSubmittedList"></div>
+  </div>
+
+  <!-- Tab 2: 交更記錄 -->
+  <div id="tabSubmissions" class="tab-content">
+    <div class="tab-filter" id="subFilter"></div>
+    <div id="submissionsList"></div>
+  </div>
+
+  <!-- Tab 3: 同事管理 -->
+  <div id="tabStaff" class="tab-content">
+    <div class="tab-filter" id="staffFilter"></div>
+    <div id="staffList"></div>
+  </div>
+
+  <!-- Tab 4: 出勤記錄 -->
+  <div id="tabAttendance" class="tab-content">
+    <div class="card">
+      <h3>➕ 新增記錄</h3>
+      <div class="form-group">
+        <label>同事</label>
+        <select id="attStaff"></select>
+      </div>
+      <div class="form-group">
+        <label>日期</label>
+        <input type="date" id="attDate">
+      </div>
+      <div class="form-group">
+        <label>類型</label>
+        <select id="attType">
+          <option value="病假">病假 Sick Leave</option>
+          <option value="遲到">遲到 Late</option>
+          <option value="早退">早退 Early Leave</option>
+          <option value="曠工">曠工 Absent</option>
+          <option value="其他">其他 Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>備註</label>
+        <textarea id="attNotes" placeholder="可留空"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="addAttendance()">新增記錄</button>
+    </div>
+    <div class="section-title">📝 記錄列表</div>
+    <div id="attendanceList"></div>
+  </div>
+
+  <!-- Tab 5: 設定 -->
+  <div id="tabSettings" class="tab-content">
+    <div class="card">
+      <h3 style="color:#e65100">📌 舊約設定</h3>
+      <div class="form-group"><label>交更開始日期</label><input type="date" id="setOldStart"></div>
+      <div class="form-group"><label>交更結束日期</label><input type="date" id="setOldEnd"></div>
+      <div class="form-group"><label>截止日期</label><input type="date" id="setOldDeadline"></div>
+      <div class="form-group"><label>最少日數</label><input type="number" id="setOldMinDays" min="0"></div>
+    </div>
+    <div class="card">
+      <h3 style="color:#2e7d32">📌 新約設定</h3>
+      <div class="form-group"><label>交更開始日期</label><input type="date" id="setNewStart"></div>
+      <div class="form-group"><label>交更結束日期</label><input type="date" id="setNewEnd"></div>
+      <div class="form-group"><label>截止日期</label><input type="date" id="setNewDeadline"></div>
+      <div class="form-group"><label>最少日數</label><input type="number" id="setNewMinDays" min="0"></div>
+    </div>
+    <button class="btn btn-primary" onclick="saveSettings()">💾 儲存設定</button>
+    <div style="height:20px"></div>
+  </div>
+
+</div>
+
+<!-- ============ BOTTOM NAV ============ -->
+<div class="bottom-nav">
+  <div class="nav-item active" data-tab="tabOverview" onclick="switchTab(this)">
+    <div class="nav-icon">📊</div><div class="nav-label">總覽</div>
+  </div>
+  <div class="nav-item" data-tab="tabSubmissions" onclick="switchTab(this)">
+    <div class="nav-icon">📋</div><div class="nav-label">交更</div>
+  </div>
+  <div class="nav-item" data-tab="tabStaff" onclick="switchTab(this)">
+    <div class="nav-icon">👥</div><div class="nav-label">同事</div>
+  </div>
+  <div class="nav-item" data-tab="tabAttendance" onclick="switchTab(this)">
+    <div class="nav-icon">📝</div><div class="nav-label">出勤</div>
+  </div>
+  <div class="nav-item" data-tab="tabSettings" onclick="switchTab(this)">
+    <div class="nav-icon">⚙️</div><div class="nav-label">設定</div>
+  </div>
+</div>
+
+<!-- ============ MODAL ============ -->
+<div id="modalOverlay" class="modal-overlay hide" onclick="closeModal(event)">
+  <div class="modal-content" id="modalContent"></div>
+</div>
+
+<script>
+// =============================================
+//  CONFIG
+// =============================================
+var API_URL = 'https://script.google.com/macros/s/AKfycbzxLaZ_kC6t7x35Q44BjiNejqc70WHno-0lX-5WXMNQ-5AJnUc9P7TB7IKoB5FclRhj0g/exec';
+var ADMIN_PIN = '8888';   // ← 改呢度換經理密碼
+
+// =============================================
+//  STATE
+// =============================================
+var S = {
+  settings: {},
+  staff: [],
+  submissions: [],
+  attendance: [],
+  subFilter: '全部',
+  staffFilter: '全部'
+};
+
+// =============================================
+//  HELPERS
+// =============================================
+function $(id){ return document.getElementById(id); }
+function showLoading(){ $('loading').classList.remove('hide'); }
+function hideLoading(){ $('loading').classList.add('hide'); }
+function toast(msg){
+  var t=$('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); },2500);
+}
+function pad(n){ return n<10?'0'+n:''+n; }
+
+function api(action, params){
+  var url=API_URL+'?action='+action;
+  if(params) Object.keys(params).forEach(function(k){ url+='&'+encodeURIComponent(k)+'='+encodeURIComponent(params[k]); });
+  return fetch(url).then(function(r){ return r.json(); });
+}
+function apiPost(body){
+  return fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}).then(function(r){ return r.json(); });
+}
+
+function cleanDateStr(s){
+  if(!s) return '';
+  s=String(s).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  var d=new Date(s);
+  if(!isNaN(d.getTime())) return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  return s;
+}
+
+function getPeriodStr(prefix){
+  return (S.settings[prefix+'_PeriodStart']||'')+' 至 '+(S.settings[prefix+'_PeriodEnd']||'');
+}
+
+// =============================================
+//  PIN LOGIN
+// =============================================
+$('pinInput').addEventListener('input', function(){
+  $('pinErr').textContent='';
+  if(this.value.length===4){
+    if(this.value===ADMIN_PIN){
+      $('pinOverlay').classList.add('hide');
+      loadAllData();
+    } else {
+      $('pinErr').textContent='密碼錯誤';
+      this.value='';
+    }
+  }
+});
+
+// =============================================
+//  LOAD ALL DATA
+// =============================================
+function loadAllData(){
+  showLoading();
+  Promise.all([
+    api('getSettings'),
+    api('getStaff'),
+    api('getSubmissions'),
+    api('getAttendance')
+  ]).then(function(res){
+    hideLoading();
+    if(res[0].ok) S.settings=res[0].settings;
+    if(res[1].ok) S.staff=res[1].staff.filter(function(s){ return s.status!=='停用'; });
+    if(res[2].ok) S.submissions=res[2].submissions;
+    if(res[3].ok) S.attendance=res[3].records;
+
+    ['OldContract_PeriodStart','OldContract_PeriodEnd','OldContract_Deadline',
+     'NewContract_PeriodStart','NewContract_PeriodEnd','NewContract_Deadline'].forEach(function(k){
+      if(S.settings[k]) S.settings[k]=cleanDateStr(S.settings[k]);
+    });
+
+    $('headerPeriod').textContent='舊約：'+getPeriodStr('OldContract');
+
+    var today=new Date();
+    $('attDate').value=today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
+
+    renderOverview();
+    renderSubmissions();
+    renderStaff();
+    renderAttendance();
+    renderSettings();
+    populateAttStaff();
+
+    toast('✅ 數據已更新');
+  }).catch(function(err){
+    hideLoading();
+    toast('載入失敗：'+err.message);
+  });
+}
+
+// =============================================
+//  TAB SWITCHING
+// =============================================
+function switchTab(el){
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  $(el.getAttribute('data-tab')).classList.add('active');
+}
+
+// =============================================
+//  TAB 1: 總覽
+// =============================================
+function renderOverview(){
+  var oldP=getPeriodStr('OldContract');
+  var newP=getPeriodStr('NewContract');
+
+  var oldStaff=S.staff.filter(function(s){ return s.contractType!=='新約'; });
+  var newStaff=S.staff.filter(function(s){ return s.contractType==='新約'; });
+
+  var oldSub=oldStaff.filter(function(s){
+    return S.submissions.some(function(sub){ return sub.phone===s.phone && sub.period===oldP; });
+  });
+  var newSub=newStaff.filter(function(s){
+    return S.submissions.some(function(sub){ return sub.phone===s.phone && sub.period===newP; });
+  });
+
+  var total=S.staff.length;
+  var totalSub=oldSub.length+newSub.length;
+  var rate=total>0?Math.round(totalSub/total*100):0;
+
+  $('kpiGrid').innerHTML=
+    '<div class="kpi-card"><div class="kpi-value">'+oldSub.length+'/'+oldStaff.length+'</div><div class="kpi-label">舊約已交</div></div>'+
+    '<div class="kpi-card"><div class="kpi-value">'+newSub.length+'/'+newStaff.length+'</div><div class="kpi-label">新約已交</div></div>'+
+    '<div class="kpi-card"><div class="kpi-value">'+rate+'%</div><div class="kpi-label">總交更率</div></div>'+
+    '<div class="kpi-card"><div class="kpi-value" style="font-size:15px">'+(S.settings.OldContract_Deadline||'—')+'</div><div class="kpi-label">舊約截止</div></div>';
+
+  var notSub=[];
+  oldStaff.forEach(function(s){
+    if(!oldSub.some(function(o){ return o.phone===s.phone; })) notSub.push(s);
+  });
+  newStaff.forEach(function(s){
+    if(!newSub.some(function(n){ return n.phone===s.phone; })) notSub.push(s);
+  });
+
+  var html='';
+  if(notSub.length===0){
+    html='<div class="empty-state"><div class="emoji">🎉</div><p>全部同事已交更！</p></div>';
+  } else {
+    notSub.forEach(function(s){
+      var bc=s.contractType==='新約'?'badge-new':'badge-old';
+      html+='<div class="list-item"><div class="li-main"><div class="li-name">'+s.name+'</div><div class="li-sub">'+s.phone+'</div></div>'+
+        '<div class="li-right"><span class="badge '+bc+'">'+s.contractType+'</span></div></div>';
+    });
+  }
+  $('notSubmittedList').innerHTML=html;
+}
+
+// =============================================
+//  TAB 2: 交更記錄
+// =============================================
+function renderSubmissions(){
+  var filters=['全部','舊約','新約'];
+  var fh='';
+  filters.forEach(function(f){
+    fh+='<button class="'+(S.subFilter===f?'active':'')+'" onclick="setSubFilter(\''+f+'\')">'+f+'</button>';
+  });
+  $('subFilter').innerHTML=fh;
+
+  var oldP=getPeriodStr('OldContract');
+  var newP=getPeriodStr('NewContract');
+
+  var filtered=S.submissions.filter(function(sub){
+    if(S.subFilter==='舊約') return sub.period===oldP;
+    if(S.subFilter==='新約') return sub.period===newP;
+    return sub.period===oldP||sub.period===newP;
+  });
+
+  if(filtered.length===0){
+    $('submissionsList').innerHTML='<div class="empty-state"><div class="emoji">📭</div><p>未有交更記錄</p></div>';
+    return;
+  }
+
+  var html='';
+  filtered.forEach(function(sub){
+    var dates=sub.dates?sub.dates.split(',').map(function(d){return d.trim();}).filter(Boolean):[];
+    var bc=sub.contractType==='新約'?'badge-new':'badge-old';
+    var gi=S.submissions.indexOf(sub);
+
+    html+='<div class="card" style="padding:14px 16px;cursor:pointer" onclick="toggleExpand(this)">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+        '<div><div style="font-size:15px;font-weight:600">'+sub.name+'</div>'+
+        '<div style="font-size:12px;color:#888;margin-top:3px">'+sub.submittedAt+'</div></div>'+
+        '<div style="text-align:right"><span class="badge '+bc+'">'+sub.contractType+'</span>'+
+        '<div style="font-size:13px;font-weight:700;color:#5e35b1;margin-top:4px">'+dates.length+' 日</div></div>'+
+      '</div>'+
+      '<div class="expandable"><div class="expand-content"><div class="tags">';
+    dates.forEach(function(d){ html+='<span class="tag">'+d+'</span>'; });
+    html+='</div>';
+    if(sub.remarks&&sub.remarks.trim()&&sub.remarks!=='undefined'){
+      html+='<div class="remarks-text">📝 '+sub.remarks+'</div>';
+    }
+    if(sub.editedAt&&sub.editedAt.trim()&&sub.editedAt!=='undefined'){
+      html+='<div style="font-size:11px;color:#aaa;margin-top:6px">✏️ 最後修改：'+sub.editedAt+'（'+sub.editedBy+'）</div>';
+    }
+    html+='<div style="margin-top:10px;text-align:right"><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openEditModal('+gi+')">✏️ 編輯</button></div>';
+    html+='</div></div></div>';
+  });
+  $('submissionsList').innerHTML=html;
+}
+
+function setSubFilter(f){ S.subFilter=f; renderSubmissions(); }
+function toggleExpand(card){ var e=card.querySelector('.expandable'); if(e) e.classList.toggle('open'); }
+
+// =============================================
+//  TAB 3: 同事管理
+// =============================================
+function renderStaff(){
+  var filters=['全部','舊約','新約'];
+  var fh='';
+  filters.forEach(function(f){
+    fh+='<button class="'+(S.staffFilter===f?'active':'')+'" onclick="setStaffFilter(\''+f+'\')">'+f+'</button>';
+  });
+  $('staffFilter').innerHTML=fh;
+
+  var filtered=S.staff.filter(function(s){
+    if(S.staffFilter==='舊約') return s.contractType!=='新約';
+    if(S.staffFilter==='新約') return s.contractType==='新約';
+    return true;
+  });
+
+  if(filtered.length===0){
+    $('staffList').innerHTML='<div class="empty-state"><div class="emoji">👤</div><p>無同事</p></div>';
+    return;
+  }
+
+  var oldP=getPeriodStr('OldContract');
+  var newP=getPeriodStr('NewContract');
+
+  var html='';
+  filtered.forEach(function(s){
+    var period=s.contractType==='新約'?newP:oldP;
+    var submitted=S.submissions.some(function(sub){ return sub.phone===s.phone&&sub.period===period; });
+    var sBadge=submitted?'<span class="badge badge-green">已交</span>':'<span class="badge badge-red">未交</span>';
+    var bc=s.contractType==='新約'?'badge-new':'badge-old';
+
+    html+='<div class="list-item" style="cursor:pointer" onclick="openStaffModal(\''+s.phone+'\')">'+
+      '<div class="li-main"><div class="li-name">'+s.name+' <span style="font-size:12px;color:#aaa">('+( s.nickname||'')+')</span></div>'+
+      '<div class="li-sub">'+s.phone+'</div></div>'+
+      '<div class="li-right"><span class="badge '+bc+'" style="margin-bottom:4px">'+s.contractType+'</span><br>'+sBadge+'</div></div>';
+  });
+  $('staffList').innerHTML=html;
+}
+
+function setStaffFilter(f){ S.staffFilter=f; renderStaff(); }
+
+// =============================================
+//  TAB 4: 出勤記錄
+// =============================================
+function populateAttStaff(){
+  var sel=$('attStaff');
+  sel.innerHTML='<option value="">— 揀同事 —</option>';
+  S.staff.forEach(function(s){
+    sel.innerHTML+='<option value="'+s.name+'">'+s.name+(s.nickname?' ('+s.nickname+')':'')+'</option>';
+  });
+}
+
+function addAttendance(){
+  var name=$('attStaff').value;
+  var date=$('attDate').value;
+  var type=$('attType').value;
+  var notes=$('attNotes').value.trim();
+
+  if(!name){ toast('請揀同事'); return; }
+  if(!date){ toast('請揀日期'); return; }
+
+  showLoading();
+  apiPost({ action:'addAttendance', staffName:name, date:date, type:type, notes:notes, recordedBy:'經理' })
+  .then(function(res){
+    hideLoading();
+    if(!res.ok){ toast(res.err); return; }
+    toast('✅ 已新增記錄');
+    $('attNotes').value='';
+    api('getAttendance').then(function(r){ if(r.ok){ S.attendance=r.records; renderAttendance(); } });
+  }).catch(function(err){ hideLoading(); toast('失敗：'+err.message); });
+}
+
+function renderAttendance(){
+  if(S.attendance.length===0){
+    $('attendanceList').innerHTML='<div class="empty-state"><div class="emoji">📋</div><p>未有出勤記錄</p></div>';
+    return;
+  }
+  var html='';
+  S.attendance.slice().reverse().forEach(function(r){
+    var tc=r.type==='病假'?'#ff9800':r.type==='遲到'?'#f44336':r.type==='曠工'?'#d32f2f':'#666';
+    html+='<div class="list-item"><div class="li-main"><div class="li-name">'+r.staffName+'</div>'+
+      '<div class="li-sub">'+r.date+(r.notes?' — '+r.notes:'')+'</div></div>'+
+      '<div class="li-right"><span class="badge" style="background:'+tc+'22;color:'+tc+'">'+r.type+'</span>'+
+      '<div style="font-size:10px;color:#aaa;margin-top:3px">'+(r.recordedAt||'')+'</div></div></div>';
+  });
+  $('attendanceList').innerHTML=html;
+}
+
+// =============================================
+//  TAB 5: 設定
+// =============================================
+function renderSettings(){
+  $('setOldStart').value=S.settings.OldContract_PeriodStart||'';
+  $('setOldEnd').value=S.settings.OldContract_PeriodEnd||'';
+  $('setOldDeadline').value=S.settings.OldContract_Deadline||'';
+  $('setOldMinDays').value=S.settings.OldContract_MinDays||'0';
+  $('setNewStart').value=S.settings.NewContract_PeriodStart||'';
+  $('setNewEnd').value=S.settings.NewContract_PeriodEnd||'';
+  $('setNewDeadline').value=S.settings.NewContract_Deadline||'';
+  $('setNewMinDays').value=S.settings.NewContract_MinDays||'0';
+}
+
+function saveSettings(){
+  showLoading();
+  apiPost({
+    action:'updateSettings',
+    settings:{
+      OldContract_PeriodStart:$('setOldStart').value,
+      OldContract_PeriodEnd:$('setOldEnd').value,
+      OldContract_Deadline:$('setOldDeadline').value,
+      OldContract_MinDays:$('setOldMinDays').value,
+      NewContract_PeriodStart:$('setNewStart').value,
+      NewContract_PeriodEnd:$('setNewEnd').value,
+      NewContract_Deadline:$('setNewDeadline').value,
+      NewContract_MinDays:$('setNewMinDays').value
+    }
+  }).then(function(res){
+    hideLoading();
+    if(!res.ok){ toast(res.err); return; }
+    toast('✅ 設定已儲存');
+    loadAllData();
+  }).catch(function(err){ hideLoading(); toast('失敗：'+err.message); });
+}
+
+// =============================================
+//  MODAL — 編輯交更
+// =============================================
+function openEditModal(idx){
+  var sub=S.submissions[idx];
+  if(!sub) return;
+
+  var html='<h3>✏️ 編輯交更 — '+sub.name+'</h3>'+
+    '<div class="form-group"><label>合約類型</label><input type="text" value="'+sub.contractType+'" disabled></div>'+
+    '<div class="form-group"><label>交更期間</label><input type="text" value="'+sub.period+'" disabled></div>'+
+    '<div class="form-group"><label>已選日期（逗號分隔）</label>'+
+    '<textarea id="editDates" style="height:100px">'+sub.dates+'</textarea></div>'+
+    '<div class="form-group"><label>備註</label>'+
+    '<textarea id="editRemarks">'+(sub.remarks&&sub.remarks!=='undefined'?sub.remarks:'')+'</textarea></div>'+
+    '<div style="display:flex;gap:10px">'+
+    '<button class="btn btn-grey" style="flex:1" onclick="closeModal()">取消</button>'+
+    '<button class="btn btn-primary" style="flex:1" onclick="saveEdit(\''+sub.phone+'\',\''+sub.period.replace(/'/g,"\\'")+'\')">💾 儲存</button></div>';
+
+  $('modalContent').innerHTML=html;
+  $('modalOverlay').classList.remove('hide');
+}
+
+function saveEdit(phone, period){
+  var dStr=$('editDates').value;
+  var remarks=$('editRemarks').value.trim();
+  var dates=dStr.split(',').map(function(d){return d.trim();}).filter(Boolean);
+
+  if(dates.length===0){ toast('請至少填一個日期'); return; }
+
+  showLoading();
+  apiPost({ action:'editSubmission', phone:phone, period:period, dates:dates, remarks:remarks, editedBy:'經理' })
+  .then(function(res){
+    hideLoading(); closeModal();
+    if(!res.ok){ toast(res.err); return; }
+    toast('✅ '+res.msg);
+    loadAllData();
+  }).catch(function(err){ hideLoading(); toast('失敗：'+err.message); });
+}
+
+// =============================================
+//  MODAL — 編輯同事
+// =============================================
+function openStaffModal(phone){
+  var staff=S.staff.find(function(s){ return s.phone===phone; });
+  if(!staff) return;
+
+  var html='<h3>👤 '+staff.name+'</h3>'+
+    '<div class="form-group"><label>電話</label><input type="text" value="'+staff.phone+'" disabled></div>'+
+    '<div class="form-group"><label>合約類型</label>'+
+    '<select id="editContract"><option value="舊約"'+(staff.contractType==='舊約'?' selected':'')+'>舊約</option>'+
+    '<option value="新約"'+(staff.contractType==='新約'?' selected':'')+'>新約</option></select></div>'+
+    '<div class="form-group"><label>狀態</label>'+
+    '<select id="editStatus"><option value="在職"'+(staff.status==='在職'?' selected':'')+'>在職</option>'+
+    '<option value="停用"'+(staff.status==='停用'?' selected':'')+'>停用</option></select></div>'+
+    '<div style="display:flex;gap:10px">'+
+    '<button class="btn btn-grey" style="flex:1" onclick="closeModal()">取消</button>'+
+    '<button class="btn btn-primary" style="flex:1" onclick="saveStaff(\''+phone+'\')">💾 儲存</button></div>';
+
+  $('modalContent').innerHTML=html;
+  $('modalOverlay').classList.remove('hide');
+}
+
+function saveStaff(phone){
+  var contract=$('editContract').value;
+  var status=$('editStatus').value;
+
+  showLoading();
+  Promise.all([
+    apiPost({action:'updateStaff',phone:phone,field:'contractType',value:contract}),
+    apiPost({action:'updateStaff',phone:phone,field:'status',value:status})
+  ]).then(function(res){
+    hideLoading(); closeModal();
+    if(!res.every(function(r){return r.ok;})){ toast('部分更新失敗'); return; }
+    toast('✅ 已更新');
+    loadAllData();
+  }).catch(function(err){ hideLoading(); toast('失敗：'+err.message); });
+}
+
+// =============================================
+//  MODAL HELPERS
+// =============================================
+function closeModal(e){
+  if(!e||e.target===$('modalOverlay')) $('modalOverlay').classList.add('hide');
+}
+
+</script>
+</body>
+</html>
