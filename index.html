@@ -223,9 +223,9 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbzxLaZ_kC6t7x35Q44BjiNejq
 var state = {
   staff: null,
   period: null,
-  selectedDates: {},   // { 'YYYY-MM-DD': true }
+  selectedDates: {},
   calYear: 2026,
-  calMonth: 10,        // 0-indexed
+  calMonth: 10,
   rangeStart: null,
   rangeEnd: null,
   minDays: 0,
@@ -244,7 +244,20 @@ function toast(msg) {
 }
 function pad(n) { return n < 10 ? '0' + n : '' + n; }
 function dateStr(y, m, d) { return y + '-' + pad(m + 1) + '-' + pad(d); }
-function parseDate(s) { var p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+
+// ★ NEW — 無論 backend 返咩格式都 clean 做 yyyy-MM-dd
+function cleanDateStr(s) {
+  if (!s) return '';
+  s = String(s).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;          // 已經係正確格式
+  var d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+  return s;
+}
+
+function parseDate(s) { var p = cleanDateStr(s).split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }  // ★ NEW — 用 cleanDateStr
 
 function api(action, params) {
   var url = API_URL + '?action=' + action;
@@ -278,9 +291,15 @@ function doLogin() {
     hideLoading();
     if (!res.ok) { toast(res.err); return; }
 
+    // ★ NEW — 先 clean 所有日期
+    res.period.start = cleanDateStr(res.period.start);
+    res.period.end = cleanDateStr(res.period.end);
+    res.period.deadline = cleanDateStr(res.period.deadline);
+    res.period.label = res.period.start + ' 至 ' + res.period.end;
+
     state.staff = res.staff;
     state.period = res.period;
-    state.minDays = res.period.minDays || 0;
+    state.minDays = parseInt(res.period.minDays) || 0;
     state.alreadySubmitted = res.alreadySubmitted;
     state.rangeStart = parseDate(res.period.start);
     state.rangeEnd = parseDate(res.period.end);
@@ -303,7 +322,6 @@ function renderFormPage(res) {
   $('pageForm').classList.remove('hide');
   $('headerSub').textContent = state.staff.name + '（' + state.staff.contractType + '）';
 
-  // Info card
   $('staffName').textContent = state.staff.name;
   var badge = $('badgeContract');
   badge.textContent = state.staff.contractType;
@@ -312,13 +330,11 @@ function renderFormPage(res) {
   $('deadlineLabel').textContent = state.period.deadline;
 
   if (state.alreadySubmitted) {
-    // 已交更
     $('cardSubmitted').classList.remove('hide');
     $('cardCalendar').classList.add('hide');
     $('cardRemarks').classList.add('hide');
     $('cardSubmitArea').classList.add('hide');
 
-    // 顯示已交日子
     var datesDiv = $('submittedDates');
     datesDiv.innerHTML = '';
     if (res.submittedDates) {
@@ -332,14 +348,12 @@ function renderFormPage(res) {
         }
       });
     }
-    // 備註
     if (res.submittedRemarks && res.submittedRemarks.trim()) {
       var rm = $('submittedRemarks');
       rm.classList.remove('hide');
       rm.textContent = '📝 備註：' + res.submittedRemarks;
     }
   } else {
-    // 未交更
     $('cardSubmitted').classList.add('hide');
     $('cardCalendar').classList.remove('hide');
     $('cardRemarks').classList.remove('hide');
@@ -371,7 +385,6 @@ function renderCalendar() {
   var grid = $('calGrid');
   grid.innerHTML = '';
 
-  // Day names
   var dayNames = ['日','一','二','三','四','五','六'];
   dayNames.forEach(function(n) {
     var d = document.createElement('div');
@@ -385,14 +398,12 @@ function renderCalendar() {
   var today = new Date();
   var todayStr = today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate());
 
-  // Empty cells
   for (var e = 0; e < firstDay; e++) {
     var empty = document.createElement('div');
     empty.className = 'day-cell empty';
     grid.appendChild(empty);
   }
 
-  // Day cells
   for (var d = 1; d <= daysInMonth; d++) {
     var cell = document.createElement('div');
     var ds = dateStr(y, m, d);
@@ -459,7 +470,6 @@ function doSubmit() {
 
   var remarks = $('inputRemarks').value.trim();
 
-  // Confirm
   var msg = '確認提交 ' + dates.length + ' 日？\n\n';
   msg += dates.join('\n');
   if (remarks) msg += '\n\n備註：' + remarks;
@@ -480,7 +490,6 @@ function doSubmit() {
     toast('✅ ' + res.msg);
     state.alreadySubmitted = true;
 
-    // Switch to submitted view
     $('cardCalendar').classList.add('hide');
     $('cardRemarks').classList.add('hide');
     $('cardSubmitArea').classList.add('hide');
