@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>交更系統</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#f2f2f7; color:#1c1c1e; min-height:100vh; }
+
+/* ===== Header ===== */
+.header { background:linear-gradient(135deg,#5e35b1,#7c4dff); color:#fff; padding:20px 16px 16px; text-align:center; position:sticky; top:0; z-index:100; }
+.header h1 { font-size:20px; font-weight:700; }
+.header .sub { font-size:13px; opacity:.85; margin-top:4px; }
+
+/* ===== Container ===== */
+.container { max-width:500px; margin:0 auto; padding:16px; }
+
+/* ===== Card ===== */
+.card { background:#fff; border-radius:14px; padding:20px 16px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.card h2 { font-size:17px; font-weight:700; margin-bottom:14px; }
+.card h3 { font-size:15px; font-weight:600; margin-bottom:10px; color:#5e35b1; }
+
+/* ===== Input ===== */
+.form-group { margin-bottom:14px; }
+.form-group label { display:block; font-size:13px; font-weight:600; color:#666; margin-bottom:6px; }
+.form-group input, .form-group textarea {
+  width:100%; padding:12px 14px; border:1.5px solid #e0e0e0; border-radius:10px;
+  font-size:16px; background:#fafafa; transition:border .2s;
+  -webkit-appearance:none; appearance:none;
+}
+.form-group input:focus, .form-group textarea:focus { border-color:#7c4dff; outline:none; background:#fff; }
+.form-group textarea { resize:none; height:70px; font-family:inherit; }
+
+/* ===== Button ===== */
+.btn {
+  width:100%; padding:14px; border:none; border-radius:12px; font-size:17px; font-weight:700;
+  color:#fff; cursor:pointer; transition:all .2s; position:relative;
+}
+.btn-primary { background:linear-gradient(135deg,#5e35b1,#7c4dff); }
+.btn-primary:active { transform:scale(.97); opacity:.9; }
+.btn-primary:disabled { background:#ccc; color:#999; transform:none; }
+.btn-logout { background:#ff3b30; margin-top:10px; font-size:15px; padding:12px; }
+
+/* ===== Info badge ===== */
+.info-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f0f0f0; }
+.info-row:last-child { border:none; }
+.info-label { font-size:13px; color:#888; }
+.info-value { font-size:15px; font-weight:600; }
+.badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+.badge-old { background:#fff3e0; color:#e65100; }
+.badge-new { background:#e8f5e9; color:#2e7d32; }
+
+/* ===== Calendar ===== */
+.cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.cal-header button { background:none; border:none; font-size:22px; color:#7c4dff; cursor:pointer; padding:4px 10px; }
+.cal-header .month-label { font-size:16px; font-weight:700; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center; }
+.cal-grid .day-name { font-size:11px; color:#999; font-weight:600; padding:4px 0; }
+.cal-grid .day-cell {
+  aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+  border-radius:10px; font-size:14px; font-weight:500; cursor:pointer; transition:all .15s;
+  position:relative;
+}
+.cal-grid .day-cell.empty { cursor:default; }
+.cal-grid .day-cell.out-range { color:#ccc; cursor:default; }
+.cal-grid .day-cell.in-range:active { transform:scale(.9); }
+.cal-grid .day-cell.selected { background:#7c4dff; color:#fff; font-weight:700; }
+.cal-grid .day-cell.today { box-shadow:inset 0 0 0 2px #7c4dff; }
+
+/* ===== Counter ===== */
+.counter-bar {
+  display:flex; justify-content:space-between; align-items:center;
+  background:#f5f0ff; border-radius:10px; padding:12px 16px; margin:14px 0 6px;
+}
+.counter-bar .count { font-size:22px; font-weight:800; color:#5e35b1; }
+.counter-bar .count-label { font-size:13px; color:#666; }
+.min-warn { font-size:12px; color:#ff3b30; text-align:center; margin-top:6px; }
+
+/* ===== Submitted view ===== */
+.submitted-box { text-align:center; padding:20px 0; }
+.submitted-box .big-check { font-size:60px; margin-bottom:10px; }
+.submitted-box .msg { font-size:17px; font-weight:700; color:#2e7d32; margin-bottom:8px; }
+.submitted-box .sub-msg { font-size:13px; color:#888; line-height:1.5; }
+.submitted-dates { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; justify-content:center; }
+.submitted-dates .tag { background:#e8f5e9; color:#2e7d32; padding:5px 10px; border-radius:8px; font-size:13px; font-weight:600; }
+.remarks-display { background:#f5f5f5; border-radius:10px; padding:12px; margin-top:12px; font-size:14px; color:#555; text-align:left; }
+
+/* ===== Loading ===== */
+.loading-overlay {
+  position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,.85);
+  display:flex; align-items:center; justify-content:center; z-index:999;
+}
+.spinner { width:36px; height:36px; border:3px solid #e0e0e0; border-top-color:#7c4dff; border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.hide { display:none !important; }
+
+/* ===== Toast ===== */
+.toast {
+  position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#1c1c1e; color:#fff;
+  padding:12px 24px; border-radius:12px; font-size:14px; font-weight:600; z-index:1000;
+  opacity:0; transition:opacity .3s; pointer-events:none;
+}
+.toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- ===== Loading ===== -->
+<div id="loading" class="loading-overlay hide"><div class="spinner"></div></div>
+
+<!-- ===== Toast ===== -->
+<div id="toast" class="toast"></div>
+
+<!-- ===== Header ===== -->
+<div class="header">
+  <h1>📋 交更系統</h1>
+  <div class="sub" id="headerSub">請登入</div>
+</div>
+
+<!-- ========================================= -->
+<!--  LOGIN PAGE                               -->
+<!-- ========================================= -->
+<div id="pageLogin" class="container">
+  <div class="card">
+    <h2>登入</h2>
+    <div class="form-group">
+      <label>電話號碼</label>
+      <input type="tel" id="inputPhone" placeholder="例如 91234567" inputmode="tel" autocomplete="tel">
+    </div>
+    <div class="form-group">
+      <label>密碼（電話最後4位）</label>
+      <input type="password" id="inputPwd" placeholder="例如 4567" maxlength="4" inputmode="numeric" autocomplete="off">
+    </div>
+    <button class="btn btn-primary" id="btnLogin" onclick="doLogin()">登入</button>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!--  FORM PAGE                                -->
+<!-- ========================================= -->
+<div id="pageForm" class="container hide">
+
+  <!-- 同事資料 -->
+  <div class="card" id="cardInfo">
+    <h2>你好，<span id="staffName"></span> 👋</h2>
+    <div class="info-row">
+      <span class="info-label">合約類型</span>
+      <span class="info-value"><span id="badgeContract" class="badge"></span></span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">交更期間</span>
+      <span class="info-value" id="periodLabel"></span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">截止日期</span>
+      <span class="info-value" id="deadlineLabel"></span>
+    </div>
+  </div>
+
+  <!-- ===== 已交更 View ===== -->
+  <div class="card hide" id="cardSubmitted">
+    <div class="submitted-box">
+      <div class="big-check">✅</div>
+      <div class="msg">你已成功交更</div>
+      <div class="sub-msg">如需修改，請 WhatsApp 經理安排<br>唔可以自行修改</div>
+      <div class="submitted-dates" id="submittedDates"></div>
+      <div class="remarks-display hide" id="submittedRemarks"></div>
+    </div>
+  </div>
+
+  <!-- ===== 未交更 — 日曆 ===== -->
+  <div class="card hide" id="cardCalendar">
+    <h3>揀你得閒返工嘅日子</h3>
+
+    <div class="cal-header">
+      <button onclick="changeMonth(-1)">‹</button>
+      <span class="month-label" id="calMonthLabel"></span>
+      <button onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+
+    <div class="counter-bar">
+      <div>
+        <div class="count" id="countSelected">0</div>
+        <div class="count-label">日已選</div>
+      </div>
+      <div style="text-align:right">
+        <div class="count" id="countMin">0</div>
+        <div class="count-label" id="countMinLabel">最少日數</div>
+      </div>
+    </div>
+    <div class="min-warn hide" id="minWarn"></div>
+  </div>
+
+  <!-- ===== 備註 ===== -->
+  <div class="card hide" id="cardRemarks">
+    <h3>備註（如有）</h3>
+    <div class="form-group" style="margin:0">
+      <textarea id="inputRemarks" placeholder="例如：11月5號只可以返夜更"></textarea>
+    </div>
+  </div>
+
+  <!-- ===== Submit ===== -->
+  <div class="hide" id="cardSubmitArea" style="padding:0 0 30px">
+    <button class="btn btn-primary" id="btnSubmit" onclick="doSubmit()">提交交更</button>
+  </div>
+
+  <!-- Logout -->
+  <button class="btn btn-logout" onclick="doLogout()">登出</button>
+  <div style="height:20px"></div>
+</div>
+
+<script>
+// =============================================
+//  CONFIG — 貼你嘅 Apps Script deployed URL
+// =============================================
+var API_URL = 'https://script.google.com/macros/s/AKfycbx13v0bjK1o_VnJW5FwpUsGL6XKrtEhBo2wq_ZLi9n3HJJtp8nW5C3-KwJrxFhJuLG4IQ/exec';
+
+// =============================================
+//  STATE
+// =============================================
+var state = {
+  staff: null,
+  period: null,
+  selectedDates: {},   // { 'YYYY-MM-DD': true }
+  calYear: 2026,
+  calMonth: 10,        // 0-indexed
+  rangeStart: null,
+  rangeEnd: null,
+  minDays: 0,
+  alreadySubmitted: false
+};
+
+// =============================================
+//  HELPERS
+// =============================================
+function $(id) { return document.getElementById(id); }
+function showLoading() { $('loading').classList.remove('hide'); }
+function hideLoading() { $('loading').classList.add('hide'); }
+function toast(msg) {
+  var t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+function dateStr(y, m, d) { return y + '-' + pad(m + 1) + '-' + pad(d); }
+function parseDate(s) { var p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+
+function api(action, params) {
+  var url = API_URL + '?action=' + action;
+  if (params) {
+    Object.keys(params).forEach(function(k) {
+      url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+    });
+  }
+  return fetch(url).then(function(r) { return r.json(); });
+}
+
+function apiPost(body) {
+  return fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body)
+  }).then(function(r) { return r.json(); });
+}
+
+// =============================================
+//  LOGIN
+// =============================================
+function doLogin() {
+  var phone = $('inputPhone').value.trim();
+  var pwd = $('inputPwd').value.trim();
+  if (!phone) { toast('請輸入電話號碼'); return; }
+  if (!pwd) { toast('請輸入密碼'); return; }
+
+  showLoading();
+  api('login', { phone: phone, password: pwd }).then(function(res) {
+    hideLoading();
+    if (!res.ok) { toast(res.err); return; }
+
+    state.staff = res.staff;
+    state.period = res.period;
+    state.minDays = res.period.minDays || 0;
+    state.alreadySubmitted = res.alreadySubmitted;
+    state.rangeStart = parseDate(res.period.start);
+    state.rangeEnd = parseDate(res.period.end);
+    state.calYear = state.rangeStart.getFullYear();
+    state.calMonth = state.rangeStart.getMonth();
+    state.selectedDates = {};
+
+    renderFormPage(res);
+  }).catch(function(err) {
+    hideLoading();
+    toast('連接失敗，請檢查網絡');
+  });
+}
+
+// =============================================
+//  RENDER FORM PAGE
+// =============================================
+function renderFormPage(res) {
+  $('pageLogin').classList.add('hide');
+  $('pageForm').classList.remove('hide');
+  $('headerSub').textContent = state.staff.name + '（' + state.staff.contractType + '）';
+
+  // Info card
+  $('staffName').textContent = state.staff.name;
+  var badge = $('badgeContract');
+  badge.textContent = state.staff.contractType;
+  badge.className = 'badge ' + (state.staff.contractType === '新約' ? 'badge-new' : 'badge-old');
+  $('periodLabel').textContent = state.period.label;
+  $('deadlineLabel').textContent = state.period.deadline;
+
+  if (state.alreadySubmitted) {
+    // 已交更
+    $('cardSubmitted').classList.remove('hide');
+    $('cardCalendar').classList.add('hide');
+    $('cardRemarks').classList.add('hide');
+    $('cardSubmitArea').classList.add('hide');
+
+    // 顯示已交日子
+    var datesDiv = $('submittedDates');
+    datesDiv.innerHTML = '';
+    if (res.submittedDates) {
+      res.submittedDates.split(',').forEach(function(d) {
+        d = d.trim();
+        if (d) {
+          var tag = document.createElement('span');
+          tag.className = 'tag';
+          tag.textContent = d;
+          datesDiv.appendChild(tag);
+        }
+      });
+    }
+    // 備註
+    if (res.submittedRemarks && res.submittedRemarks.trim()) {
+      var rm = $('submittedRemarks');
+      rm.classList.remove('hide');
+      rm.textContent = '📝 備註：' + res.submittedRemarks;
+    }
+  } else {
+    // 未交更
+    $('cardSubmitted').classList.add('hide');
+    $('cardCalendar').classList.remove('hide');
+    $('cardRemarks').classList.remove('hide');
+    $('cardSubmitArea').classList.remove('hide');
+
+    $('countMin').textContent = state.minDays > 0 ? state.minDays : '—';
+    $('countMinLabel').textContent = state.minDays > 0 ? '最少日數' : '無限制';
+
+    renderCalendar();
+    updateCounter();
+  }
+}
+
+// =============================================
+//  CALENDAR
+// =============================================
+function changeMonth(dir) {
+  state.calMonth += dir;
+  if (state.calMonth < 0) { state.calMonth = 11; state.calYear--; }
+  if (state.calMonth > 11) { state.calMonth = 0; state.calYear++; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  var y = state.calYear, m = state.calMonth;
+  var monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  $('calMonthLabel').textContent = y + '年 ' + monthNames[m];
+
+  var grid = $('calGrid');
+  grid.innerHTML = '';
+
+  // Day names
+  var dayNames = ['日','一','二','三','四','五','六'];
+  dayNames.forEach(function(n) {
+    var d = document.createElement('div');
+    d.className = 'day-name';
+    d.textContent = n;
+    grid.appendChild(d);
+  });
+
+  var firstDay = new Date(y, m, 1).getDay();
+  var daysInMonth = new Date(y, m + 1, 0).getDate();
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate());
+
+  // Empty cells
+  for (var e = 0; e < firstDay; e++) {
+    var empty = document.createElement('div');
+    empty.className = 'day-cell empty';
+    grid.appendChild(empty);
+  }
+
+  // Day cells
+  for (var d = 1; d <= daysInMonth; d++) {
+    var cell = document.createElement('div');
+    var ds = dateStr(y, m, d);
+    var cellDate = new Date(y, m, d);
+    var inRange = cellDate >= state.rangeStart && cellDate <= state.rangeEnd;
+
+    cell.className = 'day-cell';
+    cell.textContent = d;
+
+    if (!inRange) {
+      cell.classList.add('out-range');
+    } else {
+      cell.classList.add('in-range');
+      if (state.selectedDates[ds]) cell.classList.add('selected');
+      if (ds === todayStr) cell.classList.add('today');
+      cell.setAttribute('data-date', ds);
+      cell.addEventListener('click', function() {
+        var dd = this.getAttribute('data-date');
+        if (state.selectedDates[dd]) {
+          delete state.selectedDates[dd];
+          this.classList.remove('selected');
+        } else {
+          state.selectedDates[dd] = true;
+          this.classList.add('selected');
+        }
+        updateCounter();
+      });
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+function updateCounter() {
+  var count = Object.keys(state.selectedDates).length;
+  $('countSelected').textContent = count;
+
+  var warn = $('minWarn');
+  if (state.minDays > 0 && count < state.minDays) {
+    warn.classList.remove('hide');
+    warn.textContent = '⚠️ 最少要揀 ' + state.minDays + ' 日，仲差 ' + (state.minDays - count) + ' 日';
+    $('btnSubmit').disabled = true;
+  } else {
+    warn.classList.add('hide');
+    if (count === 0) {
+      $('btnSubmit').disabled = true;
+    } else {
+      $('btnSubmit').disabled = false;
+    }
+  }
+}
+
+// =============================================
+//  SUBMIT
+// =============================================
+function doSubmit() {
+  var dates = Object.keys(state.selectedDates).sort();
+  if (dates.length === 0) { toast('請最少揀一日'); return; }
+
+  if (state.minDays > 0 && dates.length < state.minDays) {
+    toast('最少要揀 ' + state.minDays + ' 日');
+    return;
+  }
+
+  var remarks = $('inputRemarks').value.trim();
+
+  // Confirm
+  var msg = '確認提交 ' + dates.length + ' 日？\n\n';
+  msg += dates.join('\n');
+  if (remarks) msg += '\n\n備註：' + remarks;
+  msg += '\n\n⚠️ 提交後唔可以自己修改，需聯絡經理';
+
+  if (!confirm(msg)) return;
+
+  showLoading();
+  apiPost({
+    action: 'submit',
+    phone: state.staff.phone,
+    dates: dates,
+    remarks: remarks
+  }).then(function(res) {
+    hideLoading();
+    if (!res.ok) { toast(res.err); return; }
+
+    toast('✅ ' + res.msg);
+    state.alreadySubmitted = true;
+
+    // Switch to submitted view
+    $('cardCalendar').classList.add('hide');
+    $('cardRemarks').classList.add('hide');
+    $('cardSubmitArea').classList.add('hide');
+    $('cardSubmitted').classList.remove('hide');
+
+    var datesDiv = $('submittedDates');
+    datesDiv.innerHTML = '';
+    dates.forEach(function(d) {
+      var tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = d;
+      datesDiv.appendChild(tag);
+    });
+
+    if (remarks) {
+      var rm = $('submittedRemarks');
+      rm.classList.remove('hide');
+      rm.textContent = '📝 備註：' + remarks;
+    }
+  }).catch(function(err) {
+    hideLoading();
+    toast('提交失敗，請檢查網絡');
+  });
+}
+
+// =============================================
+//  LOGOUT
+// =============================================
+function doLogout() {
+  state.staff = null;
+  state.period = null;
+  state.selectedDates = {};
+  state.alreadySubmitted = false;
+
+  $('pageForm').classList.add('hide');
+  $('pageLogin').classList.remove('hide');
+  $('headerSub').textContent = '請登入';
+  $('inputPhone').value = '';
+  $('inputPwd').value = '';
+  $('inputRemarks').value = '';
+
+  $('cardSubmitted').classList.add('hide');
+  $('cardCalendar').classList.add('hide');
+  $('cardRemarks').classList.add('hide');
+  $('cardSubmitArea').classList.add('hide');
+}
+
+// =============================================
+//  AUTO-LOGIN FROM URL (optional)
+// =============================================
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var ph = params.get('phone');
+  var pw = params.get('pwd');
+  if (ph && pw) {
+    $('inputPhone').value = ph;
+    $('inputPwd').value = pw;
+    setTimeout(doLogin, 300);
+  }
+})();
+</script>
+</body>
+</html>
